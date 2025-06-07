@@ -2,31 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Scratch 3 SB3 Player</title>
+  <title>Scratch SB3 Player</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f0f0f0;
-      text-align: center;
-      padding: 2rem;
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
     }
-    canvas {
-      border: 1px solid #ccc;
-      background: white;
+    #loader {
+      width: 80%;
+      background: #444;
+      height: 20px;
+      border-radius: 10px;
+      margin: 1em 0;
+      display: none;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #4caf50;
+      border-radius: 10px;
+    }
+    #stage {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      outline: none;
     }
     input {
       margin-top: 1rem;
+      font-size: 1rem;
     }
   </style>
 </head>
 <body>
-  <h2>Scratch 3 Player</h2>
-  <p>Select an .sb3 file to run it:</p>
+  <h2>Upload your .sb3 file</h2>
   <input type="file" id="file" accept=".sb3" />
-  <br />
+  <div id="loader"><div id="progress-bar"></div></div>
   <canvas id="stage" width="480" height="360"></canvas>
 
-  <!-- Scratch runtime dependencies -->
+  <!-- Scratch VM libraries -->
   <script src="https://unpkg.com/scratch-vm/dist/web/scratch-vm.min.js"></script>
   <script src="https://unpkg.com/scratch-render/dist/web/scratch-render.min.js"></script>
   <script src="https://unpkg.com/scratch-audio/dist/web/scratch-audio.min.js"></script>
@@ -38,31 +60,61 @@
     const renderer = new window.RenderWebGL(canvas);
     const audioEngine = new window.AudioEngine();
     const storage = new window.ScratchStorage();
+    const fileInput = document.getElementById("file");
+    const loader = document.getElementById("loader");
+    const progressBar = document.getElementById("progress-bar");
 
     vm.attachRenderer(renderer);
     vm.attachAudioEngine(audioEngine);
     vm.attachStorage(storage);
-    vm.setCompatibilityMode(true); // To improve compatibility
+    vm.setCompatibilityMode(true);
     vm.start();
 
-    document.getElementById("file").addEventListener("change", e => {
+    // Try fullscreen request
+    function goFullscreen() {
+      if (canvas.requestFullscreen) canvas.requestFullscreen();
+      else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
+      else if (canvas.mozRequestFullScreen) canvas.mozRequestFullScreen();
+      else if (canvas.msRequestFullscreen) canvas.msRequestFullscreen();
+    }
+
+    fileInput.addEventListener("change", e => {
       const file = e.target.files[0];
-      if (file && file.name.endsWith(".sb3")) {
-        const reader = new FileReader();
-        reader.onload = evt => {
-          const arrayBuffer = evt.target.result;
-          vm.loadProject(arrayBuffer).then(() => {
-            console.log("Project loaded.");
-            vm.greenFlag();
-          }).catch(err => {
-            alert("Failed to load project.");
-            console.error(err);
-          });
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        alert("Please select a valid .sb3 file.");
+      if (!file || !file.name.endsWith(".sb3")) {
+        alert("Please upload a valid .sb3 file.");
+        return;
       }
+
+      loader.style.display = "block";
+      progressBar.style.width = "0%";
+
+      const reader = new FileReader();
+
+      // Show progress for big files
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = percent + "%";
+        }
+      };
+
+      reader.onload = function (event) {
+        const arrayBuffer = event.target.result;
+
+        vm.loadProject(arrayBuffer).then(() => {
+          console.log("Project loaded");
+          loader.style.display = "none";
+          canvas.style.display = "block";
+          goFullscreen();
+          vm.greenFlag();
+        }).catch(err => {
+          loader.style.display = "none";
+          alert("Failed to load the project.");
+          console.error(err);
+        });
+      };
+
+      reader.readAsArrayBuffer(file);
     });
   </script>
 </body>
