@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scratch SB3 Player</title>
   <style>
     body {
@@ -12,10 +13,21 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
+      padding: 2rem;
+      overflow: auto;
     }
+
+    label {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    input[type="file"] {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+
     #loader {
       width: 80%;
       background: #444;
@@ -24,31 +36,35 @@
       margin: 1em 0;
       display: none;
     }
+
     #progress-bar {
       height: 100%;
       width: 0%;
       background: #4caf50;
       border-radius: 10px;
     }
-    #stage {
+
+    canvas {
+      width: 100%;
+      height: auto;
+      max-width: 100vw;
+      max-height: 100vh;
+      background: #fff;
+      border: 1px solid #ccc;
       display: none;
-      width: 100vw;
-      height: 100vh;
-      outline: none;
-    }
-    input {
-      margin-top: 1rem;
-      font-size: 1rem;
     }
   </style>
 </head>
 <body>
-  <h2>Upload your .sb3 file</h2>
-  <input type="file" id="file" accept=".sb3" />
-  <div id="loader"><div id="progress-bar"></div></div>
-  <canvas id="stage" width="480" height="360"></canvas>
+  <h2>Scratch 3 Project Player</h2>
 
-  <!-- Scratch VM libraries -->
+  <label for="file">Choose a Scratch project (.sb3):</label>
+  <input type="file" id="file" accept=".sb3" />
+
+  <div id="loader"><div id="progress-bar"></div></div>
+  <canvas id="stage" width="480" height="360" tabindex="0"></canvas>
+
+  <!-- Scratch VM dependencies -->
   <script src="https://unpkg.com/scratch-vm/dist/web/scratch-vm.min.js"></script>
   <script src="https://unpkg.com/scratch-render/dist/web/scratch-render.min.js"></script>
   <script src="https://unpkg.com/scratch-audio/dist/web/scratch-audio.min.js"></script>
@@ -70,7 +86,6 @@
     vm.setCompatibilityMode(true);
     vm.start();
 
-    // Try fullscreen request
     function goFullscreen() {
       if (canvas.requestFullscreen) canvas.requestFullscreen();
       else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
@@ -78,7 +93,7 @@
       else if (canvas.msRequestFullscreen) canvas.msRequestFullscreen();
     }
 
-    fileInput.addEventListener("change", e => {
+    fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file || !file.name.endsWith(".sb3")) {
         alert("Please upload a valid .sb3 file.");
@@ -90,7 +105,6 @@
 
       const reader = new FileReader();
 
-      // Show progress for big files
       reader.onprogress = (e) => {
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded / e.total) * 100);
@@ -98,16 +112,15 @@
         }
       };
 
-      reader.onload = function (event) {
+      reader.onload = (event) => {
         const arrayBuffer = event.target.result;
 
         vm.loadProject(arrayBuffer).then(() => {
-          console.log("Project loaded");
           loader.style.display = "none";
           canvas.style.display = "block";
           goFullscreen();
           vm.greenFlag();
-        }).catch(err => {
+        }).catch((err) => {
           loader.style.display = "none";
           alert("Failed to load the project.");
           console.error(err);
