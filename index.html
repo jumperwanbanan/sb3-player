@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scratch 3 SB3 Player</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      text-align: center;
+      padding: 2rem;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: white;
+    }
+    input {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>Scratch 3 Player</h2>
+  <p>Select an .sb3 file to run it:</p>
+  <input type="file" id="file" accept=".sb3" />
+  <br />
+  <canvas id="stage" width="480" height="360"></canvas>
+
+  <!-- Scratch runtime dependencies -->
+  <script src="https://unpkg.com/scratch-vm/dist/web/scratch-vm.min.js"></script>
+  <script src="https://unpkg.com/scratch-render/dist/web/scratch-render.min.js"></script>
+  <script src="https://unpkg.com/scratch-audio/dist/web/scratch-audio.min.js"></script>
+  <script src="https://unpkg.com/scratch-storage/dist/web/scratch-storage.min.js"></script>
+
+  <script>
+    const vm = new window.VirtualMachine();
+    const canvas = document.getElementById("stage");
+    const renderer = new window.RenderWebGL(canvas);
+    const audioEngine = new window.AudioEngine();
+    const storage = new window.ScratchStorage();
+
+    vm.attachRenderer(renderer);
+    vm.attachAudioEngine(audioEngine);
+    vm.attachStorage(storage);
+    vm.setCompatibilityMode(true); // To improve compatibility
+    vm.start();
+
+    document.getElementById("file").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith(".sb3")) {
+        const reader = new FileReader();
+        reader.onload = evt => {
+          const arrayBuffer = evt.target.result;
+          vm.loadProject(arrayBuffer).then(() => {
+            console.log("Project loaded.");
+            vm.greenFlag();
+          }).catch(err => {
+            alert("Failed to load project.");
+            console.error(err);
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        alert("Please select a valid .sb3 file.");
+      }
+    });
+  </script>
+</body>
+</html>
